@@ -27,7 +27,7 @@ export default function SignupPage() {
     try {
       // registerUser now returns { token, user } directly
       const data = await registerUser({ name, email, password, phone: phone || undefined });
-      login(data.token);
+      login(data.token, data.user);
       toast.success("Account created! Welcome to EduReach.");
       navigate("/");
     } catch (err: any) {

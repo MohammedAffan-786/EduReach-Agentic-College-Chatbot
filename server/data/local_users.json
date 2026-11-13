@@ -14,5 +14,13 @@
     "password": "$2b$10$.Ie.zbRdBKB9yoNZ5BozU.F1Du1MjU2vb2ti7fs6YXEvOLWIOa3FS",
     "phone": null,
     "created_at": "2026-11-13T14:02:11.636Z"
+  },
+  {
+    "id": "usr_1794587571323_sxxgu",
+    "name": "MD AFFAN",
+    "email": "affan.dev123@gmail.com",
+    "password": "$2b$10$r5GDScXKE4B4CEZM.pcJjuXOUIOdNRsM/S1d0pHxElrmReF8s0wri",
+    "phone": "8050037767",
+    "created_at": "2026-11-13T16:32:51.323Z"
   }
 ]

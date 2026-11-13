@@ -11,7 +11,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (token: string) => void;
+  login: (token: string, userData?: User) => void;
   logout: () => void;
 }
 
@@ -27,7 +27,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getMe()
         .then((data) => setUser(data.user))
         .catch(() => {
+          const cached = localStorage.getItem("user");
+          if (cached) {
+            try {
+              setUser(JSON.parse(cached));
+              return;
+            } catch {}
+          }
           localStorage.removeItem("token");
+          localStorage.removeItem("user");
           setUser(null);
         })
         .finally(() => setLoading(false));
@@ -36,18 +44,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (token: string) => {
+  const login = (token: string, userData?: User) => {
     localStorage.setItem("token", token);
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+      return;
+    }
     getMe()
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      })
       .catch(() => {
-        localStorage.removeItem("token");
-        setUser(null);
+        const cached = localStorage.getItem("user");
+        if (cached) {
+          try {
+            setUser(JSON.parse(cached));
+          } catch {}
+        }
       });
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
   };
 
@@ -60,6 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used inside AuthProvider");
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 }

@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       // loginUser now returns { token, user } directly
       const data = await loginUser({ email, password });
-      login(data.token);
+      login(data.token, data.user);
       toast.success("Welcome back!");
       navigate("/");
     } catch (err: any) {
