@@ -19,8 +19,10 @@ export default function HeroSection() {
             {siteConfig.tagline}. Premier engineering institution with 92% placement rate
             and partnerships with Google, Microsoft & Amazon.
           </p>
-          <a href="#courses"
-            className="inline-block bg-white text-maroon px-6 py-3 rounded-lg font-semibold hover:bg-amber-300 hover:text-maroon-dark transition-colors duration-300">
+          <a
+            href="#courses"
+            className="inline-block bg-white text-maroon px-6 py-3 rounded-lg font-semibold hover:bg-amber-300 hover:text-maroon-dark transition-colors duration-300"
+          >
             Explore Programs
           </a>
         </div>

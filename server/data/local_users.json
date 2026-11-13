@@ -1,0 +1,18 @@
+[
+  {
+    "id": "usr_1794578386266_kz2bb",
+    "name": "Mohammed Affan",
+    "email": "mohammedaffan97121@gmail.com",
+    "password": "$2b$10$OnE0oDSrz7dgiVUHxQs3I.mXyh5LuB2hhYsq0FyFvdG1.tPt48xFK",
+    "phone": "8050037767",
+    "created_at": "2026-11-13T13:59:46.266Z"
+  },
+  {
+    "id": "usr_1794578531636_hqjbc",
+    "name": "MOHAMMED AFFAN",
+    "email": "affan.dev123@gmal.com",
+    "password": "$2b$10$.Ie.zbRdBKB9yoNZ5BozU.F1Du1MjU2vb2ti7fs6YXEvOLWIOa3FS",
+    "phone": null,
+    "created_at": "2026-11-13T14:02:11.636Z"
+  }
+]

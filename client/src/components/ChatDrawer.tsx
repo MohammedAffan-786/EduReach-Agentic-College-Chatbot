@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot, User, Minus } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { sendMessage } from "../services/chat.service";
+import { sendMessage, streamChatMessage } from "../services/chat.service";
 
 interface Message {
   id: number;
@@ -36,7 +36,7 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, sending]);
 
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
@@ -47,23 +47,41 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
     setInput("");
     setSending(true);
 
+    const botMsgId = Date.now() + 1;
+    let hasCreatedBotMsg = false;
+
     try {
-      // sendMessage now returns { message: "answer text" }
-      const data = await sendMessage(messageText);
-      const botMsg: Message = { id: Date.now() + 1, text: data.message, sender: "bot" };
-      setMessages((prev) => [...prev, botMsg]);
-    } catch (error) {
-
-  console.error("CHATBOT ERROR:", error);
-
-  const errorMsg: Message = {
-    id: Date.now() + 1,
-    text: "Sorry, something went wrong. Please try again.",
-    sender: "bot"
-  };
-
-  setMessages((prev) => [...prev, errorMsg]);
-} finally {
+      await streamChatMessage(messageText, (chunkText) => {
+        if (!hasCreatedBotMsg) {
+          hasCreatedBotMsg = true;
+          setMessages((prev) => [...prev, { id: botMsgId, text: chunkText, sender: "bot" }]);
+        } else {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === botMsgId ? { ...msg, text: chunkText } : msg))
+          );
+        }
+      });
+    } catch {
+      // Fallback to regular endpoint
+      try {
+        const data = await sendMessage(messageText);
+        if (!hasCreatedBotMsg) {
+          setMessages((prev) => [...prev, { id: botMsgId, text: data.message, sender: "bot" }]);
+        } else {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === botMsgId ? { ...msg, text: data.message } : msg))
+          );
+        }
+      } catch (error) {
+        console.error("CHATBOT ERROR:", error);
+        const errorMsg: Message = {
+          id: Date.now() + 2,
+          text: "Sorry, something went wrong. Please try again.",
+          sender: "bot",
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+      }
+    } finally {
       setSending(false);
     }
   };
@@ -87,7 +105,7 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
           </div>
           <div>
             <h3 className="text-white font-semibold text-sm">EduReach Bot</h3>
-            <p className="text-white/70 text-xs">Ask me anything</p>
+            <p className="text-white/70 text-xs">AI Counselor &bull; Instant Answers</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -109,7 +127,7 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
                 <Bot className="w-3 h-3 text-white" />
               </div>
             )}
-            <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+            <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
               msg.sender === "user"
                 ? "bg-maroon text-white rounded-br-sm"
                 : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm"
@@ -124,7 +142,7 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
           </div>
         ))}
 
-        {sending && (
+        {sending && !messages.some((m) => m.id === Date.now() + 1) && (
           <div className="flex items-end gap-2">
             <div className="w-6 h-6 bg-maroon rounded-full flex items-center justify-center">
               <Bot className="w-3 h-3 text-white" />

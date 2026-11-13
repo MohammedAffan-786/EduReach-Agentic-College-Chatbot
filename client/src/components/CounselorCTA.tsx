@@ -1,22 +1,15 @@
-import { useNavigate } from "react-router-dom";
 import { images } from "../data/content";
 import { PhoneCall } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { openCallModal } from "../services/vapiWeb";
 
 interface CounselorCTAProps {
-  onOpenCall: () => void;
+  onOpenCall?: () => void;
 }
 
 export default function CounselorCTA({ onOpenCall }: CounselorCTAProps) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
   const handleClick = () => {
-    if (user) {
-      onOpenCall();
-    } else {
-      navigate("/login");
-    }
+    if (onOpenCall) onOpenCall();
+    openCallModal();
   };
 
   return (
@@ -33,14 +26,14 @@ export default function CounselorCTA({ onOpenCall }: CounselorCTAProps) {
           The Right University For You?
         </h2>
         <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-          Get personalized guidance on courses, admissions, fees, scholarships, and career paths.
+          Get personalized live voice guidance on courses, admissions, fees, scholarships, and career paths.
         </p>
         <button
           onClick={handleClick}
-          className="inline-flex items-center gap-2 bg-white text-maroon px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-300 hover:text-maroon-dark transition-colors duration-300 shadow-lg"
+          className="inline-flex items-center gap-2 bg-white text-maroon px-8 py-4 rounded-xl font-semibold text-lg hover:bg-amber-300 hover:text-maroon-dark transition-colors duration-300 shadow-lg cursor-pointer hover:scale-105 active:scale-95"
         >
-          <PhoneCall className="w-5 h-5" />
-          Talk to Counsellor
+          <PhoneCall className="w-5 h-5 text-maroon" />
+          Talk to Counsellor (Live Voice)
         </button>
       </div>
     </section>
