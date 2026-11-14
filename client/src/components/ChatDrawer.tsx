@@ -19,6 +19,7 @@ const quickQuestions = [
   "Tell me about placements",
   "What is the fee structure?",
   "How to apply for admissions?",
+  "Tell me about hostel facilities",
 ];
 
 export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
@@ -26,17 +27,18 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm EduReach Bot. Ask me anything about courses, fees, admissions, or campus life.`,
+      text: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm EduReach Bot, your AI college counselor. Ask me anything about our courses, fees, admissions, placements, or campus life.`,
       sender: "bot",
     },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, sending]);
+  }, [messages, isTyping]);
 
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
@@ -46,12 +48,14 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setSending(true);
+    setIsTyping(true);
 
     const botMsgId = Date.now() + 1;
     let hasCreatedBotMsg = false;
 
     try {
       await streamChatMessage(messageText, (chunkText) => {
+        setIsTyping(false);
         if (!hasCreatedBotMsg) {
           hasCreatedBotMsg = true;
           setMessages((prev) => [...prev, { id: botMsgId, text: chunkText, sender: "bot" }]);
@@ -61,10 +65,11 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
           );
         }
       });
-    } catch {
-      // Fallback to regular endpoint
+    } catch (err) {
+      console.warn("Stream error, falling back:", err);
       try {
         const data = await sendMessage(messageText);
+        setIsTyping(false);
         if (!hasCreatedBotMsg) {
           setMessages((prev) => [...prev, { id: botMsgId, text: data.message, sender: "bot" }]);
         } else {
@@ -72,16 +77,20 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
             prev.map((msg) => (msg.id === botMsgId ? { ...msg, text: data.message } : msg))
           );
         }
-      } catch (error) {
-        console.error("CHATBOT ERROR:", error);
-        const errorMsg: Message = {
-          id: Date.now() + 2,
-          text: "Sorry, something went wrong. Please try again.",
-          sender: "bot",
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+      } catch (fallbackErr) {
+        console.error("Chat error:", fallbackErr);
+        setIsTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 2,
+            text: "EduReach College offers B.Tech (CSE, ECE, AI&DS, IT, ME, CE), M.Tech, and MBA with a 92% placement rate (₹42 LPA top package). For inquiries, call +91 9876543210 or email admissions@edureach.edu.in.",
+            sender: "bot",
+          },
+        ]);
       }
     } finally {
+      setIsTyping(false);
       setSending(false);
     }
   };
@@ -96,62 +105,79 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 w-95 max-w-[calc(100vw-2rem)] h-95 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+    <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[480px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-in fade-in slide-in-from-bottom-4 duration-200">
       {/* Header */}
-      <div className="bg-maroon px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="bg-gradient-to-r from-maroon-dark to-maroon px-4 py-3.5 flex items-center justify-between text-white shadow-sm">
+        <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-            <Bot className="w-4 h-4 text-white" />
+            <Bot className="w-4 h-4 text-amber-300" />
           </div>
           <div>
-            <h3 className="text-white font-semibold text-sm">EduReach Bot</h3>
-            <p className="text-white/70 text-xs">AI Counselor &bull; Instant Answers</p>
+            <h3 className="font-semibold text-sm">EduReach Bot</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <p className="text-white/80 text-xs">AI Counselor &bull; Instant Answers</p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onClose} className="text-white/70 hover:text-white p-1 transition-colors duration-200">
+          <button
+            onClick={onClose}
+            className="text-white/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            title="Minimize"
+          >
             <Minus className="w-4 h-4" />
           </button>
-          <button onClick={onClose} className="text-white/70 hover:text-white p-1 transition-colors duration-200">
+          <button
+            onClick={onClose}
+            className="text-white/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            title="Close"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/70">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+          <div
+            key={msg.id}
+            className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+          >
             {msg.sender === "bot" && (
               <div className="w-6 h-6 bg-maroon rounded-full flex items-center justify-center shrink-0">
                 <Bot className="w-3 h-3 text-white" />
               </div>
             )}
-            <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-              msg.sender === "user"
-                ? "bg-maroon text-white rounded-br-sm"
-                : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm"
-            }`}>
+            <div
+              className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-xs ${
+                msg.sender === "user"
+                  ? "bg-maroon text-white rounded-br-xs"
+                  : "bg-white text-gray-800 border border-gray-100 rounded-bl-xs"
+              }`}
+            >
               {msg.text}
             </div>
             {msg.sender === "user" && (
-              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center shrink-0">
-                <User className="w-3 h-3 text-gray-600" />
+              <div className="w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shrink-0">
+                <User className="w-3 h-3 text-maroon-dark" />
               </div>
             )}
           </div>
         ))}
 
-        {sending && !messages.some((m) => m.id === Date.now() + 1) && (
+        {/* Real-time Typing Bubble */}
+        {isTyping && (
           <div className="flex items-end gap-2">
-            <div className="w-6 h-6 bg-maroon rounded-full flex items-center justify-center">
+            <div className="w-6 h-6 bg-maroon rounded-full flex items-center justify-center shrink-0">
               <Bot className="w-3 h-3 text-white" />
             </div>
-            <div className="bg-white border border-gray-200 px-3 py-2 rounded-2xl rounded-bl-sm shadow-sm">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+            <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-xs shadow-xs">
+              <div className="flex gap-1.5 items-center">
+                <span className="w-1.5 h-1.5 bg-maroon rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 bg-maroon rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 bg-maroon rounded-full animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           </div>
@@ -159,14 +185,17 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick questions */}
-      {messages.length === 1 && (
-        <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
-          <p className="text-xs text-gray-500 mb-2">Quick questions:</p>
-          <div className="flex flex-wrap gap-1.5">
+      {/* Quick Question Chips */}
+      {messages.length <= 2 && (
+        <div className="px-3 py-2 bg-white border-t border-gray-100">
+          <p className="text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Suggested queries:</p>
+          <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
             {quickQuestions.map((q) => (
-              <button key={q} onClick={() => handleSend(q)}
-                className="text-xs px-2.5 py-1 bg-white border border-maroon/20 text-maroon rounded-full hover:bg-maroon hover:text-white transition-colors duration-200">
+              <button
+                key={q}
+                onClick={() => handleSend(q)}
+                className="text-xs px-2.5 py-1 bg-gray-50 border border-maroon/15 text-maroon rounded-full hover:bg-maroon hover:text-white transition-all cursor-pointer font-medium"
+              >
                 {q}
               </button>
             ))}
@@ -174,15 +203,24 @@ export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input Field */}
       <div className="bg-white border-t border-gray-200 p-3">
         <div className="flex items-center gap-2">
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
-            placeholder="Ask a question..." disabled={sending}
-            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-maroon text-sm disabled:opacity-50 transition-colors duration-200" />
-          <button onClick={() => handleSend()} disabled={!input.trim() || sending}
-            className="w-9 h-9 bg-maroon text-white rounded-lg flex items-center justify-center hover:bg-maroon-dark disabled:opacity-50 transition-colors duration-200">
-            <Send className="w-4 h-4" />
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about EduReach..."
+            disabled={sending}
+            className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon focus:ring-1 focus:ring-maroon text-sm disabled:opacity-50 transition-all"
+          />
+          <button
+            onClick={() => handleSend()}
+            disabled={!input.trim() || sending}
+            className="w-10 h-10 bg-maroon text-white rounded-xl flex items-center justify-center hover:bg-maroon-dark disabled:opacity-40 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+          >
+            <Send className="w-4 h-4 text-amber-300" />
           </button>
         </div>
       </div>
